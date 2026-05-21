@@ -21,3 +21,5 @@ clean:
 	rm -rf obj_dir *.fst *.vcd
 
 .PHONY: all sim clean
+
+-include ../Makefile
