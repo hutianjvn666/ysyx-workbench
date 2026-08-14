@@ -24,8 +24,45 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  int i;
+  for (i = 0; i < ARRLEN(regs); i++) {
+    printf("%-4s\t" FMT_WORD "\t%d\n", regs[i], gpr(i), gpr(i));
+  }
+  printf("pc  \t" FMT_WORD "\t%d\n", cpu.pc, cpu.pc);
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+  // Strip leading '$' if present
+  const char *name = s;
+  if (name[0] == '$') {
+    name++;
+  }
+
+  // Special case: pc
+  if (strcmp(name, "pc") == 0) {
+    *success = true;
+    return cpu.pc;
+  }
+
+  // Look up in regs[] array
+  int i;
+  for (i = 0; i < ARRLEN(regs); i++) {
+    // regs[i] may start with '$' (e.g. "$0") or not (e.g. "ra")
+    const char *reg_name = regs[i];
+    if (reg_name[0] == '$') {
+      if (strcmp(name, reg_name + 1) == 0) {  // skip leading '$'
+        *success = true;
+        return gpr(i);
+      }
+    } else {
+      if (strcmp(name, reg_name) == 0) {
+        *success = true;
+        return gpr(i);
+      }
+    }
+  }
+
+  // Not found
+  *success = false;
   return 0;
 }

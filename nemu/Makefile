@@ -62,3 +62,8 @@ else
 # Include rules to build NEMU
 include $(NEMU_HOME)/scripts/native.mk
 endif
+
+.PHONY: count
+
+count:
+	@cloc src include tools --include-lang='C,C/C++ Header' 2>/dev/null

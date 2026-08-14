@@ -31,8 +31,76 @@ static char *code_format =
 "  return 0; "
 "}";
 
+static uint32_t choose(uint32_t n) {
+  return rand() % n;
+}
+
+static void gen_num() {
+  char tmp[32];
+  unsigned val;
+  // occasionally generate boundary values
+  switch (choose(10)) {
+    case 0: val = 0; break;
+    case 1: val = 1; break;
+    case 2: val = 0xffffffff; break;
+    default: val = rand(); break;
+  }
+  sprintf(tmp, "%uu", val);  // u suffix → GCC uses 32-bit unsigned, matching NEMU
+  strcat(buf, tmp);
+}
+
 static void gen_rand_expr() {
-  buf[0] = '\0';
+  static int depth = 0;
+  if (depth > 10 || strlen(buf) > 500) { gen_num(); return; }
+
+  depth++;
+  switch (choose(10)) {
+    case 0: case 1:
+      /* number — 20% */
+      if (choose(4) == 0) strcat(buf, " ");
+      gen_num();
+      if (choose(4) == 0) strcat(buf, " ");
+      break;
+    case 2: case 3:
+      /* ( expr ) — 20% */
+      if (choose(4) == 0) strcat(buf, " ");
+      strcat(buf, "(");
+      if (choose(3) == 0) strcat(buf, " ");
+      gen_rand_expr();
+      if (choose(3) == 0) strcat(buf, " ");
+      strcat(buf, ")");
+      if (choose(4) == 0) strcat(buf, " ");
+      break;
+    default: {
+      /* expr op expr */
+      if (choose(4) == 0) strcat(buf, " ");
+      gen_rand_expr();
+      if (choose(4) == 0) strcat(buf, " ");
+
+      int op = choose(4);
+      char op_str[4] = {};
+      switch (op) {
+        case 0: strcpy(op_str, "+"); break;
+        case 1: strcpy(op_str, "-"); break;
+        case 2: strcpy(op_str, "*"); break;
+        case 3: strcpy(op_str, "/"); break;
+      }
+      strcat(buf, op_str);
+
+      if (op == 3) {
+        /* division: ensure RHS is a non-zero literal */
+        char tmp[32];
+        sprintf(tmp, " %uu ", (unsigned)(rand() % 9999 + 1));
+        strcat(buf, tmp);
+      } else {
+        if (choose(4) == 0) strcat(buf, " ");
+        gen_rand_expr();
+      }
+      if (choose(4) == 0) strcat(buf, " ");
+      break;
+    }
+  }
+  depth--;
 }
 
 int main(int argc, char *argv[]) {
@@ -44,6 +112,7 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
+    buf[0] = '\0';
     gen_rand_expr();
 
     sprintf(code_buf, code_format, buf);
@@ -59,8 +128,8 @@ int main(int argc, char *argv[]) {
     fp = popen("/tmp/.expr", "r");
     assert(fp != NULL);
 
-    int result;
-    ret = fscanf(fp, "%d", &result);
+    unsigned result;
+    ret = fscanf(fp, "%u", &result);
     pclose(fp);
 
     printf("%u %s\n", result, buf);

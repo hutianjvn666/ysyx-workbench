@@ -20,4 +20,18 @@
 
 word_t expr(char *e, bool *success);
 
+/* Watchpoint */
+typedef struct watchpoint {
+  int NO;
+  struct watchpoint *next;
+  char expr[256];
+  word_t old_val;
+  word_t new_val;   /* last evaluated value, for display on hit */
+} WP;
+WP* new_wp(char *e);
+void free_wp(int NO);
+void wp_display();
+bool wp_check();
+int wp_hit_no();    /* returns NO of last triggered watchpoint, or -1 */
+
 #endif
