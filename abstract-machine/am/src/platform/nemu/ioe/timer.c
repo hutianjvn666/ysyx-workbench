@@ -5,7 +5,9 @@ void __am_timer_init() {
 }
 
 void __am_timer_uptime(AM_TIMER_UPTIME_T *uptime) {
-  uptime->us = 0;
+  uint32_t hi = inl(RTC_ADDR + 4);   // 先读高32位: NEMU 会把高/低32位一起定格成同一时刻
+  uint32_t lo = inl(RTC_ADDR);       // 再读低32位
+  uptime->us = ((uint64_t)hi << 32) | lo;
 }
 
 void __am_timer_rtc(AM_TIMER_RTC_T *rtc) {

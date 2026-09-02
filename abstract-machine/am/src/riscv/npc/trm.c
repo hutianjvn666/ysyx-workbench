@@ -1,5 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
+#include <riscv/riscv.h>
 
 extern char _heap_start;
 int main(const char *args);
@@ -11,11 +12,15 @@ extern char _pmem_start;
 Area heap = RANGE(&_heap_start, PMEM_END);
 static const char mainargs[MAINARGS_MAX_LEN] = TOSTRING(MAINARGS_PLACEHOLDER); // defined in CFLAGS
 
+#define SERIAL_ADDR 0x10000000   // 与后续 SoC 串口地址一致
+
 void putch(char ch) {
+  outb(SERIAL_ADDR, ch);
 }
 
 void halt(int code) {
-  while (1);
+  asm volatile("mv a0, %0; ebreak" : : "r"(code));
+  while (1);   // should not reach here
 }
 
 void _trm_init() {

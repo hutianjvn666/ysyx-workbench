@@ -151,6 +151,20 @@ config ITRACE_COND
   string "Only trace instructions when the condition is true"
   default "true"
 
+config DTRACE
+  bool "Enable device tracer"
+  default n
+  help
+    Enable tracing of device (MMIO and port I/O) accesses.
+    Each device access is logged with the device name, address,
+    offset, length and data. Note that this may produce a lot of
+    output and slow down the simulation.
+
+config DTRACE_COND
+  depends on DTRACE
+  string "Only trace device accesses when the condition is true"
+  default "true"
+
 
 config DIFFTEST
   depends on TARGET_NATIVE_ELF

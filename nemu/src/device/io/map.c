@@ -52,12 +52,22 @@ void init_map() {
   p_space = io_space;
 }
 
+#ifdef CONFIG_DTRACE
+static void dtrace_device_access(IOMap *map, paddr_t addr, int len, word_t data, bool is_write) {
+  printf("dtrace: %-5s %-8s @ " FMT_PADDR " (offset " FMT_PADDR ", len=%d) = " FMT_WORD "\n",
+      is_write ? "write" : "read", map->name, addr, addr - map->low, len, data);
+}
+#endif
+
 word_t map_read(paddr_t addr, int len, IOMap *map) {
   assert(len >= 1 && len <= 8);
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
   word_t ret = host_read(map->space + offset, len);
+#ifdef CONFIG_DTRACE
+  if (DTRACE_COND) dtrace_device_access(map, addr, len, ret, false);
+#endif
   return ret;
 }
 
@@ -67,4 +77,7 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   paddr_t offset = addr - map->low;
   host_write(map->space + offset, len, data);
   invoke_callback(map->callback, offset, len, true);
+#ifdef CONFIG_DTRACE
+  if (DTRACE_COND) dtrace_device_access(map, addr, len, data, true);
+#endif
 }

@@ -25,7 +25,8 @@ image: image-dep
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
+# 在 NPC 上运行; halt() 是 while(1), 由 main.cpp 的死循环检测自动结束仿真
 run: insert-arg
-	echo "TODO: add command here to run simulation"
+	$(NPC_HOME)/build/Vtop $(IMAGE).bin
 
-.PHONY: insert-arg
+.PHONY: insert-arg run

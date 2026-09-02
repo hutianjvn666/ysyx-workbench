@@ -1,42 +1,56 @@
 /***************************************************************************************
-* Copyright (c) 2014-2024 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
+ * Copyright (c) 2014-2024 Zihao Yu, Nanjing University
+ *
+ * NEMU is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ *PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ *KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ *NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ *
+ * See the Mulan PSL v2 for more details.
+ ***************************************************************************************/
 
-#include <isa.h>
 #include <cpu/cpu.h>
 #include <difftest-def.h>
+#include <isa.h>
 #include <memory/paddr.h>
+#include <string.h>
 
-__EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  assert(0);
+__EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n,
+                              bool direction) {
+    if (direction == DIFFTEST_TO_REF) {
+        // copy DUT's memory (buf) into REF's pmem at addr
+        memcpy(guest_to_host(addr), buf, n);
+    } else {
+        // copy REF's pmem at addr into DUT's memory (buf)
+        memcpy(buf, guest_to_host(addr), n);
+    }
 }
 
 __EXPORT void difftest_regcpy(void *dut, bool direction) {
-  assert(0);
+    // dut 指向与 CPU_state 布局一致的缓冲区: 32 个 GPR + 1 个 pc (共 33 个
+    // word)
+    if (direction == DIFFTEST_TO_REF) {
+        memcpy(&cpu, dut, DIFFTEST_REG_SIZE);
+    } else {
+        memcpy(dut, &cpu, DIFFTEST_REG_SIZE);
+    }
 }
 
 __EXPORT void difftest_exec(uint64_t n) {
-  assert(0);
+    cpu_exec(n);
 }
 
 __EXPORT void difftest_raise_intr(word_t NO) {
-  assert(0);
+    assert(0);
 }
 
 __EXPORT void difftest_init(int port) {
-  void init_mem();
-  init_mem();
-  /* Perform ISA dependent initialization. */
-  init_isa();
+    void init_mem();
+    init_mem();
+    /* Perform ISA dependent initialization. */
+    init_isa();
 }
