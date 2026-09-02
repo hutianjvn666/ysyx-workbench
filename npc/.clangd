@@ -1,0 +1,13 @@
+# clangd 配置 —— NPC (Verilator) 项目
+# main.cpp 用到了 Verilator 生成的头文件 Vtop.h (在 build/obj_dir/) 和
+# verilated.h / verilated_fst_c.h (在 verilator 安装目录), 都不在 clangd 默认
+# 搜索路径里。此外 clangd 对 .cpp 的 fallback 命令默认带 -std=c11, 与 C++ 冲突,
+# 会报 "Verilator requires a C++14 or newer compiler", 所以这里去掉 c11、改用 c++17。
+CompileFlags:
+  Remove:
+    - "-std=c11"
+  Add:
+    - "-std=c++17"
+    - "-I/home/hutianjvn/ysyx-workbench/npc/build/obj_dir"
+    - "-I/usr/local/share/verilator/include"
+    - "-I/usr/local/share/verilator/include/vltstd"
