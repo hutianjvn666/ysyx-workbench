@@ -15,12 +15,14 @@
 
 #include <isa.h>
 
-word_t isa_raise_intr(word_t NO, vaddr_t epc) {
-  /* TODO: Trigger an interrupt/exception with ``NO''.
-   * Then return the address of the interrupt/exception vector.
-   */
-
-  return 0;
+vaddr_t isa_raise_intr(word_t NO, vaddr_t epc) {
+#ifdef CONFIG_ETRACE
+  log_write("etrace: pc = " FMT_WORD ", cause = " FMT_WORD ", epc = " FMT_WORD "\n",
+            cpu.pc, NO, epc);
+#endif
+  cpu.mepc = epc;      // save the PC of the trapped instruction
+  cpu.mcause = NO;     // record the cause
+  return cpu.mtvec;    // jump to the trap entry (mtvec)
 }
 
 word_t isa_query_intr() {

@@ -151,6 +151,16 @@ config ITRACE_COND
   string "Only trace instructions when the condition is true"
   default "true"
 
+config FTRACE
+  depends on TRACE && TARGET_NATIVE_ELF && ENGINE_INTERPRETER
+  bool "Enable function tracer"
+  default n
+  help
+    Enable function call tracing (ftrace). Function call and return events
+    are decoded from the instruction stream (jal/jalr with rd=x1 as call,
+    `jalr x0,0(x1)` as ret) and logged with indentation to nemu-ftrace.txt.
+    The image must be an ELF with a .symtab section.
+
 config DTRACE
   bool "Enable device tracer"
   default n
@@ -164,6 +174,15 @@ config DTRACE_COND
   depends on DTRACE
   string "Only trace device accesses when the condition is true"
   default "true"
+
+config ETRACE
+  depends on TRACE
+  bool "Enable exception tracer"
+  default y
+  help
+    Enable tracing of exceptions and interrupts. Each exception is
+    logged with its cause (exception number), the current PC, and the
+    exception PC (return address).
 
 
 config DIFFTEST

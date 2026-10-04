@@ -5,9 +5,15 @@
 static Context* (*user_handler)(Event, Context*) = NULL;
 
 Context* __am_irq_handle(Context *c) {
+  /* PA3 debug leftover, commented out for clean yield-os output:
+  printf("CTX: ra=%p a0=%p a7=%p mcause=%d mepc=%p mstatus=%p\n",
+         (void *)c->gpr[1], (void *)c->gpr[10], (void *)c->gpr[17],
+         (int)c->mcause, (void *)c->mepc, (void *)c->mstatus);
+  */
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
+      case -1: ev.event = EVENT_YIELD; break;
       default: ev.event = EVENT_ERROR; break;
     }
 
@@ -31,7 +37,11 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 }
 
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  Context *cp = (Context *)(kstack.end - sizeof(Context));
+  cp->mepc = (uintptr_t)entry;
+  cp->mstatus = 0x1800;   // mstatus.MPP = M-mode, mret stays in M-mode
+  cp->gpr[10] = (uintptr_t)arg;   // a0 (x10) = 1st arg, per RISC-V calling convention
+  return cp;
 }
 
 void yield() {

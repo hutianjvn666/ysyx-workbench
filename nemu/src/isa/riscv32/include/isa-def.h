@@ -21,6 +21,10 @@
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
+  word_t mtvec;    // 0x305: machine trap-vector base (exception entry)
+  word_t mstatus;  // 0x300: machine status
+  word_t mepc;     // 0x341: machine exception program counter
+  word_t mcause;   // 0x342: machine cause
 } MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
 
 // decode

@@ -32,20 +32,13 @@ static struct rule {
     const char *regex;
     int token_type;
 } rules[] = {
-    {" +", TK_NOTYPE},            // whitespace
-    {"0x[0-9a-fA-F]+", TK_HEX},   // hex
-    {"[0-9]+", TK_NUM},           // decimal
-    {"\\$[a-zA-Z0-9]+", TK_REG},  // register ($name)
-    {"==", TK_EQ},
-    {"!=", TK_NEQ},
-    {"&&", TK_AND},
-    {"\\|\\|", TK_OR},
-    {"\\+", '+'},
-    {"-", '-'},
-    {"\\*", '*'},
-    {"/", '/'},
-    {"\\(", '('},
-    {"\\)", ')'},
+    {" +", TK_NOTYPE},  {"0x[0-9a-fA-F]+", TK_HEX},
+    {"[0-9]+", TK_NUM}, {"\\$[a-zA-Z0-9]+", TK_REG},
+    {"==", TK_EQ},      {"!=", TK_NEQ},
+    {"&&", TK_AND},     {"\\|\\|", TK_OR},
+    {"\\+", '+'},       {"-", '-'},
+    {"\\*", '*'},       {"/", '/'},
+    {"\\(", '('},       {"\\)", ')'},
 };
 #define NR_REGEX (int)(sizeof(rules) / sizeof(rules[0]))
 
@@ -57,7 +50,8 @@ void init_regex(void) {
         int ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
         if (ret != 0) {
             regerror(ret, &re[i], error_msg, sizeof(error_msg));
-            fprintf(stderr, "regex compilation failed: %s\n%s\n", error_msg, rules[i].regex);
+            fprintf(stderr, "regex compilation failed: %s\n%s\n", error_msg,
+                    rules[i].regex);
         }
     }
 }
@@ -79,7 +73,8 @@ static bool make_token(char *e) {
     while (e[position] != '\0') {
         int i;
         for (i = 0; i < NR_REGEX; i++) {
-            if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
+            if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 &&
+                pmatch.rm_so == 0) {
                 char *substr_start = e + position;
                 int substr_len = pmatch.rm_eo;
                 position += substr_len;
@@ -106,7 +101,8 @@ static bool make_token(char *e) {
             }
         }
         if (i == NR_REGEX) {
-            printf("no match at position %d\n%s\n%*s^\n", position, e, position, "");
+            printf("no match at position %d\n%s\n%*s^\n", position, e, position,
+                   "");
             return false;
         }
     }
@@ -170,9 +166,13 @@ static uint32_t eval(int p, int q, bool *success) {
 
             // * / - are unary at start or after an operator/'('
             if (prec <= 5 && (tokens[i].type == '*' || tokens[i].type == '-')) {
-                if (i == p || tokens[i - 1].type == '(' || tokens[i - 1].type == '+' || tokens[i - 1].type == '-' ||
-                    tokens[i - 1].type == '*' || tokens[i - 1].type == '/' || tokens[i - 1].type == TK_EQ ||
-                    tokens[i - 1].type == TK_NEQ || tokens[i - 1].type == TK_AND || tokens[i - 1].type == TK_OR) {
+                if (i == p || tokens[i - 1].type == '(' ||
+                    tokens[i - 1].type == '+' || tokens[i - 1].type == '-' ||
+                    tokens[i - 1].type == '*' || tokens[i - 1].type == '/' ||
+                    tokens[i - 1].type == TK_EQ ||
+                    tokens[i - 1].type == TK_NEQ ||
+                    tokens[i - 1].type == TK_AND ||
+                    tokens[i - 1].type == TK_OR) {
                     continue;  // unary
                 }
             }

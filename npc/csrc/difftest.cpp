@@ -98,5 +98,5 @@ void difftest_step(uint32_t pc_exec) {
     }
   }
 
-  if (!ok) npc_state = NPC_ABORT;
+  if (!ok) set_npc_state(NPC_ABORT, pc_exec, 0);
 }

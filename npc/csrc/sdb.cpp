@@ -22,7 +22,7 @@ static int cmd_c(char *args) {
 
 static int cmd_q(char *args) {
     npc_state = NPC_QUIT;
-    return -1;  // negative return exits the loop
+    return -1;
 }
 
 static int cmd_help(char *args);
@@ -175,7 +175,8 @@ static int cmd_help(char *args) {
 }
 
 void sdb_mainloop(void) {
-    while (npc_state != NPC_END && npc_state != NPC_QUIT) {
+    while (npc_state != NPC_END && npc_state != NPC_TIMEOUT &&
+           npc_state != NPC_QUIT) {
         char *str = rl_gets();
         if (str == NULL)
             break;  // EOF
@@ -213,6 +214,9 @@ void sdb_mainloop(void) {
             printf("Hit watchpoint %d\n", hit);
     }
 }
+
+void init_regex(void);    // expr.cpp
+void init_wp_pool(void);  // watchpoint.cpp
 
 void init_sdb(void) {
     init_regex();

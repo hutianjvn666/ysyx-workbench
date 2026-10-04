@@ -94,6 +94,49 @@ static inline word_t urem(word_t a, word_t b) {
     return a % b;
 }
 
+// ---- CSR access (PA3: exceptions/traps) ----
+static inline word_t csr_read(uint32_t addr) {
+    switch (addr) {
+        case 0x300: return cpu.mstatus;
+        case 0x305: return cpu.mtvec;
+        case 0x341: return cpu.mepc;
+        case 0x342: return cpu.mcause;
+        case 0xF11: return 0x79737978; // mvendorid = "ysyx"
+        case 0xF12: return 0x018DF3EF; // marchid   = 26080239
+        default: panic("unsupported CSR 0x%x", addr);
+    }
+    return 0;
+}
+
+static inline void csr_write(uint32_t addr, word_t val) {
+    switch (addr) {
+        case 0x300: cpu.mstatus = val; break;
+        case 0x305: cpu.mtvec = val; break;
+        case 0x341: cpu.mepc = val; break;
+        case 0x342: cpu.mcause = val; break;
+        default: panic("unsupported CSR 0x%x", addr);
+    }
+}
+
+// execute one CSR instruction: op=1 csrrw, op=2 csrrs, op=3 csrrc
+// read old value back into rd; rs1/zimm == 0 means no write (pure read)
+static inline word_t csr_exec(int op, uint32_t csr, word_t src, int rd) {
+    word_t old = csr_read(csr);
+    word_t val = old;
+    int wr = 1;
+    if (op == 1) {
+        val = src;
+    } else if (src != 0) {
+        if (op == 2) val = old | src;
+        else         val = old & ~src;
+    } else {
+        wr = 0;
+    }
+    if (wr) csr_write(csr, val);
+    R(rd) = old;
+    return old;
+}
+
 static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
     uint32_t i = s->isa.inst;
     int rs1 = BITS(i, 19, 15);
@@ -198,6 +241,19 @@ static int decode_exec(Decode *s) {
 
     INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak, N, NEMUTRAP(s->pc, R(10)));  // R(10) is $a0
     INSTPAT("??????? ????? 00000 000 00000 00011 11", fence, N);  // fence = no-op
+
+    // ecall: self trap; pass a7 (x17) as the cause (yield sets a7 = -1)
+    INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall, N, s->dnpc = isa_raise_intr(R(17), s->pc + 4));
+    // mret: return from trap -> jump to mepc
+    INSTPAT("0011000 00010 00000 000 00000 11100 11", mret, N, s->dnpc = cpu.mepc);
+
+    INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw, N, csr_exec(1, BITS(s->isa.inst, 31, 20), R(BITS(s->isa.inst, 19, 15)), BITS(s->isa.inst, 11, 7)));
+    INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs, N, csr_exec(2, BITS(s->isa.inst, 31, 20), R(BITS(s->isa.inst, 19, 15)), BITS(s->isa.inst, 11, 7)));
+    INSTPAT("??????? ????? ????? 011 ????? 11100 11", csrrc, N, csr_exec(3, BITS(s->isa.inst, 31, 20), R(BITS(s->isa.inst, 19, 15)), BITS(s->isa.inst, 11, 7)));
+    INSTPAT("??????? ????? ????? 101 ????? 11100 11", csrrwi, N, csr_exec(1, BITS(s->isa.inst, 31, 20), BITS(s->isa.inst, 19, 15), BITS(s->isa.inst, 11, 7)));
+    INSTPAT("??????? ????? ????? 110 ????? 11100 11", csrrsi, N, csr_exec(2, BITS(s->isa.inst, 31, 20), BITS(s->isa.inst, 19, 15), BITS(s->isa.inst, 11, 7)));
+    INSTPAT("??????? ????? ????? 111 ????? 11100 11", csrrci, N, csr_exec(3, BITS(s->isa.inst, 31, 20), BITS(s->isa.inst, 19, 15), BITS(s->isa.inst, 11, 7)));
+
     INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv, N, INV(s->pc));
     INSTPAT_END();
 

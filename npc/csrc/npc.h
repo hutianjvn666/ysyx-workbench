@@ -13,23 +13,64 @@
 extern Vtop *top;
 
 // ==================== execution state ====================
-// Why execution stopped (like NEMU's nemu_state).
+//
 typedef enum {
-    NPC_RUNNING,  // running
-    NPC_STOP,     // stopped after N steps / watchpoint hit
-    NPC_END,      // hit ebreak
-    NPC_QUIT,     // user quit via 'q'
-    NPC_ABORT,    // difftest 发现状态不一致
+    NPC_RUNNING,
+    NPC_STOP,     // after N steps / watchpoint hit
+    NPC_END,      // ebreak (normal halt)
+    NPC_TIMEOUT,  // exceeded MAX_CYCLES without ebreak
+    NPC_QUIT,     // 'q'
+    NPC_ABORT,    // difftest mismatch
 } npc_state_t;
 extern npc_state_t npc_state;
+// single entry point to stop the CPU: records state + halt context (pc, a0)
+void set_npc_state(npc_state_t state, uint32_t pc, int ret);
 
 // ==================== register / memory ====================
-// read GPR idx (x0 always 0)
+// read GPR
 uint32_t cpu_gpr(int idx);
 // read PC
 uint32_t cpu_pc(void);
-// read 4 bytes (little-endian), 0 if out of range
+// read 4 bytes, 0 if out of range
 uint32_t sdb_mem_read(uint32_t addr);
+
+// ==================== memory / device ====================
+// load raw image into pmem, return bytes read (exits on open failure)
+size_t pmem_load_image(const char *path);
+// base address of pmem (difftest sync)
+void *pmem_base(void);
+// write one ebreak instruction at addr (tests with standalone halt symbol)
+void place_ebreak(uint32_t addr);
+// reset RTC boot timestamp (called once at startup)
+void timer_set_boot(void);
+// print out-of-bounds access counters (called by report_halt)
+void pmem_print_oob_stats(void);
+
+// ==================== trace ====================
+// open itrace + mtrace + ftrace and init disassembler (elf_path == NULL -> no ftrace)
+void trace_init(const char *elf_path);
+// close the three trace files + capstone (called by report_halt, after iring replay)
+void trace_close(void);
+// record one executed instruction: push ringbuf + write itrace
+void trace_record(uint32_t pc, uint32_t inst);
+// log ftrace call/ret (step calls it after posedge)
+void trace_ftrace(uint32_t pc_exec, uint32_t inst_exec, uint32_t next_pc);
+// dump recent instructions (bad trap)
+void trace_dump_iring(void);
+// log one data-memory access (called by pmem)
+void mtrace_log(char rw, uint32_t addr, uint32_t data, char wmask);
+
+// ==================== execution engine ====================
+// TRACE_OFF env: skip waveform + itrace (main sets, step reads)
+extern bool trace_off;
+// interactive sdb mode: suppress batch progress print (main sets, step reads)
+extern bool sdb_mode;
+// build DUT + waveform and assert reset (main calls once)
+void init_sim(void);
+// close waveform + free DUT (main calls once at shutdown)
+void fini_sim(void);
+// print trap report and return process exit code
+int report_halt(void);
 
 // ==================== difftest ====================
 // 动态链接 NEMU 的 .so 并同步镜像/初始寄存器 (ref_so_file == NULL 表示不启用)
@@ -38,10 +79,6 @@ void init_difftest(const char *ref_so_file, void *img, size_t img_size);
 void difftest_step(uint32_t pc_exec);
 
 // ==================== sdb ====================
-// compile regex (expr.cpp)
-void init_regex(void);
-// init watchpoint pool (watchpoint.cpp)
-void init_wp_pool(void);
 // init_regex + init_wp_pool
 void init_sdb(void);
 // interactive command loop

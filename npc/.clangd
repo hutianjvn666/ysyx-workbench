@@ -11,3 +11,4 @@ CompileFlags:
     - "-I/home/hutianjvn/ysyx-workbench/npc/build/obj_dir"
     - "-I/usr/local/share/verilator/include"
     - "-I/usr/local/share/verilator/include/vltstd"
+    - "-I/home/hutianjvn/ysyx-workbench/npc/tools/capstone/include"

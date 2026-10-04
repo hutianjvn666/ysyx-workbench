@@ -22,3 +22,7 @@ src/utils/disasm.c: $(LIBCAPSTONE)
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 endif
+
+ifeq ($(CONFIG_FTRACE),)
+SRCS-BLACKLIST-y += src/utils/ftrace.c
+endif

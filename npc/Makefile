@@ -50,6 +50,7 @@ $(OBJ_DIR)/V$(TOP_MODULE).mk: $(VSRCS) $(CSRCS)
 	@$(VERILATOR) $(VERILATOR_FLAGS) --cc --exe --top-module $(TOP_MODULE) \
 		$(VSRCS) $(CSRCS) --Mdir $(OBJ_DIR) -o $(abspath $(BIN)) \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS))
+	@touch $@
 
 # ---- 第二步：--build 编译链接 ----
 $(BIN): $(OBJ_DIR)/V$(TOP_MODULE).mk
